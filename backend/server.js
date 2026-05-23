@@ -14,7 +14,7 @@ app.use(cors({
     'http://localhost:5173',
     'http://localhost:3000',
     'https://initial-portfolio-mustafa2506q.vercel.app',
-    'https://initial-portfolio.vercel.app',
+    'https://mustafaporfolio.vercel.app/',
   ],
   methods: ['GET', 'POST'],
   credentials: true
