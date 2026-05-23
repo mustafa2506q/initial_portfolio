@@ -1,7 +1,55 @@
-// ❌ Remove this from top level
-const transporter = nodemailer.createTransport({...});
+require('dotenv').config();
+const express = require('express');
+const mongoose = require('mongoose');
+const nodemailer = require('nodemailer');
+const Contact = require('./models/Contact');
 
-// ✅ Replace with this inside the route
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// ===== MANUAL CORS =====
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
+app.use(express.json());
+
+// ===== MONGODB =====
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      bufferCommands: false,
+    });
+    console.log('Connected to MongoDB ✅');
+  } catch (err) {
+    console.error('Could not connect to MongoDB:', err.message);
+    process.exit(1);
+  }
+};
+
+connectDB();
+
+// ===== ROUTES =====
+app.get('/', (req, res) => {
+  res.send('Portfolio Backend is running! ✅');
+});
+
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
+});
+
+// ===== CONTACT ROUTE =====
 app.post('/api/contact', async (req, res) => {
   try {
     const { name, email, message } = req.body;
@@ -20,11 +68,12 @@ app.post('/api/contact', async (req, res) => {
       });
     }
 
+    // Save to MongoDB
     const newContact = new Contact({ name, email, message });
     await newContact.save();
     console.log('Contact saved ✅');
 
-    // Create transporter inside route - won't crash server
+    // Send Email
     try {
       const transporter = nodemailer.createTransport({
         service: 'gmail',
@@ -56,7 +105,6 @@ app.post('/api/contact', async (req, res) => {
       console.log('Email sent ✅');
     } catch (emailError) {
       console.error('Email error:', emailError.message);
-      // Don't fail - message already saved to MongoDB
     }
 
     res.status(201).json({
@@ -71,4 +119,8 @@ app.post('/api/contact', async (req, res) => {
       message: 'Server error. Please try again later.'
     });
   }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT} ✅`);
 });
